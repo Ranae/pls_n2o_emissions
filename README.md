@@ -4,7 +4,7 @@ I am trying to build a model to predict cumulative spring nitrous oxide (N2O) em
 
 ## Predictor variables fall into a few latent variables.
 
-The following variables are closely related and covary within groups, (e.g. theta_s values depend upon how much sand/silt/clay are in the soil).
+The following variables are closely related and collinear within groups, (e.g. theta_s values depend upon how much sand/silt/clay are in the soil).
 
 ### Soil texture
 
