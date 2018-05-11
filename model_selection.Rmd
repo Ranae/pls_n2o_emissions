@@ -1,0 +1,165 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r, setup}
+
+library(tidyverse)
+library(caret)
+library(e1071)
+library(pls)
+library(glmnet)
+library(plspm)
+```
+
+```{r, read in data}
+annual_flux<-read_csv("ars_annual_N2O.csv")
+
+annual_flux<-annual_flux%>%
+  select(-Unit_ID, -site)%>%
+  distinct()%>% #eliminate all the replication from treatments
+  na.omit() #some missing soil characteristics and some incomplete years
+```
+
+```{r, format data}
+
+#Predictor variables
+flux_x<-select(annual_flux, -total_N2O, -log_total_N2O, -series, -town, -avg_N2O, -log_avg_N2O,-year)
+
+#Response variable
+flux_y<-select(annual_flux, total_N2O)
+
+#Not everything likes tibbles
+flux_xish<-as.data.frame(unclass(flux_x))
+
+#Centering and scaling, removing rows with NA
+flux_x_processed<-preProcess(flux_xish, method = c("BoxCox", "center", "scale"), na.remove = TRUE)
+flux_x_pro_mat<-predict(flux_x_processed, flux_xish) #Not 100% sure what this line does (0% sure)
+
+#Put the x and y back together for complete matrix
+all_data<-cbind(flux_y, flux_x_pro_mat)
+```
+
+```{r, PLS}
+
+################## PLS ########################################## 
+plsFit<-plsr(total_N2O ~ ., validation = "LOO", data=all_data)
+
+plot(RMSEP(plsFit), legendpos = "topright") #4 components looks best
+
+plot(plsFit, ncomp=4, asp = 0, line=TRUE)
+
+RMSEP(plsFit)
+R2(plsFit)
+
+?varImp
+varImp(plsFit)%>%
+  rownames_to_column()%>%
+  ggplot(aes(x=reorder(rowname, -Overall), y=Overall))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ggtitle("PLS")
+```
+
+```{r, PLS-PM, Partial Least Squares Path Modeling}
+#This isn't working right now because I eliminated some variables, so need to adjust the groups below
+#reorder dataframe  
+yep<-yep_log[c("theta_s", "clay", "silt_f_psa", "sand", "Ks",
+               "silt_c_psa", "silt", "theta_r", "oc", "estimated_om",
+               "n_tot", "estimated_c_to_n", "cold_sum", "sum_rad", 
+               "sum_tmax", "precip_sum", "snow_sum", "cfd", "ex_mg", 
+               "cec7", "bs7", "ex_k_saturation", "cec82", "ex_k",
+               "ph_h2o", "ex_ca", "total_N2O")]  
+
+yep_clean<-yep%>%select(-cec7, -cec82, -bs7, 
+                          -ex_ca, -ex_mg, -ex_k, -n_tot, -estimated_c_to_n, -ex_k_saturation)
+
+# rows of inner model matrix  
+chem <- c(0,0,0,0,0)
+water<- c(0,0,0,0,0)
+sub  <- c(1,1,0,0,0)
+weath<- c(0,0,0,0,0)
+n2o  <- c(1,1,1,1,0)
+
+foot_path<-rbind(chem, water, sub, weath, n2o)
+colnames(foot_path) = rownames(foot_path)
+
+innerplot(foot_path)
+
+foot_blocks <- list(19:26, 1:8, 9:12, 13:18, 27)
+foot_blocks_clean <- list(1:8, 9:10, 11:15, 16, 17)
+
+foot_modes2 <- c("A", "A", "A", "A", "B")  
+
+my_pls <- plspm(yep, foot_path, foot_blocks, modes = foot_modes2)
+
+plot(my_pls)
+plot(my_pls, what = "loadings", arr.width = 0.1)
+```
+
+```{r, Ridge regression, actually LASSO}
+
+################# glmnet ########################################
+
+#glmnet wants matrix and vector
+flux_mat<-(as.matrix(flux_x_pro_mat))
+flux_vec<-as.vector(unlist(flux_y))
+
+glm_fit<-glmnet(flux_mat, flux_vec, alpha = 1) #alpha = 1 is what makes this lasso
+coef(glm_fit,s=0.1)
+
+cvfit = cv.glmnet(flux_mat, flux_vec, nfolds = 40)
+plot(cvfit) 
+cvfit$lambda.min
+
+summary(cvfit)
+
+cvfit
+
+print(glm_fit, lambda = cvfit$lambda.min)
+response <- predict(cvfit, flux_mat,
+                    s = "lambda.min",
+                    type = "class")
+
+try<-cbind(response, flux_y)
+
+colnames(try)<-c("pred", "obs")
+
+
+ggplot(try, aes(x=obs, y = pred))+
+  geom_point()+
+  geom_abline(slope = 1)
+
+predict(glm_fit, newx = flux_mat, lambda = cvfit$lambda.min)
+
+rsquare(try$obs, try$pred)
+
+varImp(glm_fit, lambda = cvfit$lambda.min)%>% 
+  rownames_to_column()%>%
+  ggplot(aes(x=reorder(rowname, Overall), y=Overall))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ggtitle("glmnet")
+```
+
+
+######################PCA##################################
+try<-princomp(flux_mat)
+summary(try)
+print(try$loadings)
+
+###################MARS#################################
+
+library(earth)
+
+marsFit <- earth(flux_xish, flux_y, nfold = 10, trace = .5) 
+
+varImp(marsFit)%>%
+  rownames_to_column()%>%
+  ggplot(aes(x=reorder(rowname, Overall), y=Overall))+
+  geom_bar(stat="identity")+
+  coord_flip()+
+  ggtitle("MARS")
+
+################

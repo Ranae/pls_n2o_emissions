@@ -8,7 +8,7 @@ pre_annual_flux<-read_csv("ars_annual_N2O.csv")
 
 #Filter and adjust data - Morris is a special case
 annual_flux<-pre_annual_flux%>%
-  select(-Unit_ID, -site)%>%
+  select(-Unit_ID, -site, silt_f_psa, silt_c_psa)%>%
   mutate(total_N2O = ifelse((town == "Morris"), total_N2O*0.80, total_N2O))%>%
   distinct()%>%
   na.omit()
@@ -55,6 +55,10 @@ varImp(plsFit, ncomp=6)%>%
   coord_flip()+
   labs(y = "Coefficient sum", x = "Predictors")
 
+###################################################################
+library(earth)
+
+marsFit <- earth(flux_xish, flux_y, nfold = 3, trace = .5) 
 
 ###################################################################
 library(recipes)
