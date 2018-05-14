@@ -129,6 +129,7 @@ colnames(try)<-c("pred", "obs")
 
 ggplot(try, aes(x=obs, y = pred))+
   geom_point()+
+  geom_smooth(method="lm")+
   geom_abline(slope = 1)
 
 predict(glm_fit, newx = flux_mat, lambda = cvfit$lambda.min)
@@ -142,7 +143,10 @@ varImp(glm_fit, lambda = cvfit$lambda.min)%>%
   coord_flip()+
   ggtitle("glmnet")
 ```
+```{r, test against canadian data}
 
+
+```
 
 ######################PCA##################################
 try<-princomp(flux_mat)
