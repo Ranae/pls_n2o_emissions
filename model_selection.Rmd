@@ -25,7 +25,10 @@ annual_flux<-annual_flux%>%
 ```{r, format data}
 
 #Predictor variables
-flux_x<-select(annual_flux, -total_N2O, -log_total_N2O, -series, -town, -avg_N2O, -log_avg_N2O,-year)
+#flux_x<-select(annual_flux, -total_N2O, -log_total_N2O, -series, -town, -avg_N2O, -log_avg_N2O,-year)
+flux_x<-select(annual_flux, sand, silt, clay, oc, ph_h2o, n_tot, theta_r, theta_s, cold_sum, sum_tmax, sum_rad, snow_sum, precip_sum, cfd, Ks, bs7)
+
+#Sand, Silt, Clay, ph_H2O, oc, TN, available P, available K, bulk density
 
 #Response variable
 flux_y<-select(annual_flux, total_N2O)
