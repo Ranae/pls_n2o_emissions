@@ -26,7 +26,9 @@ annual_flux<-annual_flux%>%
 
 #Predictor variables
 #flux_x<-select(annual_flux, -total_N2O, -log_total_N2O, -series, -town, -avg_N2O, -log_avg_N2O,-year)
-flux_x<-select(annual_flux, sand, silt, clay, oc, ph_h2o, n_tot, theta_r, theta_s, cold_sum, sum_tmax, sum_rad, snow_sum, precip_sum, cfd, Ks, bs7)
+flux_x<-select(annual_flux, sand, clay, silt, oc,  ph_h2o, cold_sum, sum_tmax, sum_rad, snow_sum, precip_sum, cfd)
+
+#n_tot, bs7,Ks, 
 
 #Sand, Silt, Clay, ph_H2O, oc, TN, available P, available K, bulk density
 
@@ -45,6 +47,75 @@ all_data<-cbind(flux_y, flux_x_pro_mat)
 ```
 
 ```{r, PLS}
+Show in New WindowClear OutputExpand/Collapse Output
+package �tidyverse� was built under R version 3.4.4-- Attaching packages --------------------------------------- tidyverse 1.2.1 --
+v ggplot2 2.2.1     v purrr   0.2.4
+v tibble  1.4.2     v dplyr   0.7.4
+v tidyr   0.7.2     v stringr 1.2.0
+v readr   1.1.1     v forcats 0.2.0
+-- Conflicts ------------------------------------------ tidyverse_conflicts() --
+x dplyr::filter() masks stats::filter()
+x dplyr::lag()    masks stats::lag()
+Loading required package: lattice
+
+Attaching package: �caret�
+
+The following object is masked from �package:purrr�:
+
+    lift
+
+
+Attaching package: �pls�
+
+The following object is masked from �package:caret�:
+
+    R2
+
+The following object is masked from �package:stats�:
+
+    loadings
+
+Loading required package: Matrix
+
+Attaching package: �Matrix�
+
+The following object is masked from �package:tidyr�:
+
+    expand
+
+Loading required package: foreach
+
+Attaching package: �foreach�
+
+The following objects are masked from �package:purrr�:
+
+    accumulate, when
+
+Loaded glmnet 2.0-13
+
+
+Attaching package: �plspm�
+
+The following object is masked from �package:ggplot2�:
+
+    alpha
+
+Show in New WindowClear OutputExpand/Collapse Output
+Parsed with column specification:
+cols(
+  .default = col_double(),
+  Unit_ID = col_character(),
+  site = col_character(),
+  series = col_character(),
+  town = col_character(),
+  year = col_integer(),
+  snow_sum = col_integer(),
+  precip_sum = col_integer()
+)
+See spec(...) for full column specifications.
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
 
 ################## PLS ########################################## 
 plsFit<-plsr(total_N2O ~ ., validation = "LOO", data=all_data)
